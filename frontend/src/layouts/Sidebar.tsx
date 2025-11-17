@@ -1,8 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, User, BarChart3, LogIn, Award, Menu, X, Activity } from 'lucide-react'; // Removido BookOpen e BookA (não usados aqui)
-import type { Page, UserLevel } from '../utils/types.ts'; // CORRIGIDO: Adicionado import type
-
-const logoIcon = 'https://placehold.co/40x40/8B5CF6/ffffff?text=UP'; 
+import { LayoutDashboard, User, BarChart3, LogIn, Award, Menu, X, Activity } from 'lucide-react';
+import type { Page, UserLevel } from '../utils/types.ts';
+// Importa a imagem local ao invés de usar o placeholder
+import logoIcon from '../assets/logo-icon.png'; 
 
 interface SidebarProps {
   currentPage: Page;
@@ -39,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, userName
       >
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center">
+            {/* A imagem agora será carregada corretamente */}
             <img src={logoIcon} alt="Upwise Logo" className="w-8 h-8 mr-2" />
             <span className="text-xl font-bold text-indigo-400">Upwise</span>
           </div>

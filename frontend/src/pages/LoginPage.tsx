@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { Page } from '../utils/types.ts'; // CORRIGIDO: Adicionado import type
-
-const logoIcon = 'https://placehold.co/40x40/8B5CF6/ffffff?text=UP'; 
+import type { Page } from '../utils/types.ts';
+// Importa a imagem local ao invés de usar o placeholder
+import logoIcon from '../assets/logo-icon.png'; 
 
 interface LoginPageProps {
   setCurrentPage: (page: Page) => void;
@@ -39,6 +39,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ setCurrentPage }) => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 transition duration-500">
       <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl transition duration-500">
         <div className="flex justify-center items-center">
+          {/* A imagem agora será carregada corretamente */}
           <img src={logoIcon} alt="Upwise Logo" className="w-12 h-12 mr-3" />
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Upwise</h1>
         </div>
