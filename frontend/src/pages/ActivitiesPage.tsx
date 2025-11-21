@@ -1,11 +1,11 @@
 // frontend/src/pages/ActivitiesPage.tsx
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, CheckCircle, XCircle, Loader2, BrainCircuit } from 'lucide-react'; // Import BrainCircuit
 import type { UserData, Page, QuizResult, Question } from '../utils/types.ts';
 
 interface ActivitiesPageProps {
   user: UserData;
-  setUser: (user: UserData) => void; // Para atualizar o estado global após o quiz
+  setUser: (user: UserData) => void;
   setCurrentPage: (page: Page) => void;
 }
 
@@ -17,7 +17,6 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
   const [quizFinished, setQuizFinished] = useState<QuizResult | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
-  // Busca questões ao carregar a página
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -40,16 +39,12 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
 
   const handleNextQuestion = () => {
     if (!selectedOption || !questions[currentQuestionIndex]) return;
-    
-    // Salva a resposta atual
     const currentQ = questions[currentQuestionIndex];
     const newAnswer = { question_id: currentQ.id, answer: selectedOption };
     const updatedAnswers = [...userAnswers, newAnswer];
     setUserAnswers(updatedAnswers);
-
     setSelectedOption(null);
 
-    // Avança ou finaliza
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
@@ -71,21 +66,19 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
         
         const resultData = await response.json();
         
-        // Atualiza o usuário global com os novos dados vindos do backend
         const updatedUser = {
             ...user,
             score: resultData.new_score,
             level: resultData.new_level,
             accuracy: resultData.accuracy,
-            totalActivities: user.totalActivities + finalAnswers.length // Aproximação, ideal seria backend retornar
+            totalActivities: user.totalActivities + finalAnswers.length
         };
         setUser(updatedUser);
 
-        // Gera feedback visual
         const isSuccess = resultData.round_accuracy >= 60;
         const feedback = isSuccess 
-            ? "Excelente! Você dominou este tópico. O nível foi ajustado para cima." 
-            : "Bom esforço. Vamos praticar um pouco mais para consolidar o básico.";
+            ? "Excelente! Você dominou este tópico." 
+            : "Bom esforço. Vamos praticar mais o básico.";
 
         const nextLvl = resultData.new_level === 'Avançado' ? 'difícil' : resultData.new_level === 'Intermediário' ? 'médio' : 'fácil';
 
@@ -95,7 +88,8 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
             accuracy: resultData.round_accuracy,
             feedbackMessage: feedback,
             nextLevel: nextLvl,
-            newScore: resultData.new_score
+            newScore: resultData.new_score,
+            ai_feedback: resultData.ai_feedback // Pega o feedback da IA
         });
 
     } catch (error) {
@@ -107,8 +101,9 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
   
   if (loading) {
       return (
-          <div className="h-full flex items-center justify-center">
+          <div className="h-full flex items-center justify-center flex-col gap-4">
               <Loader2 size={48} className="animate-spin text-purple-500" />
+              <p className="text-gray-400 animate-pulse">A IA está analisando suas respostas...</p>
           </div>
       );
   }
@@ -125,11 +120,17 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
                 
                 <h2 className="text-3xl font-bold text-white mb-4">Atividade Concluída</h2>
                 <p className="text-5xl font-extrabold mb-6" style={{color: '#8B5CF6'}}>{quizFinished.accuracy.toFixed(1)}%</p>
-                <p className="text-xl font-medium text-gray-200 mb-6">Nova Pontuação Total: {quizFinished.newScore}</p>
                 
-                <div className={`p-4 rounded-lg border-l-4 mb-8 ${isSuccess ? 'border-green-400 bg-green-900/50' : 'border-yellow-400 bg-yellow-900/50'}`}>
-                    <p className="text-gray-300 mt-2">{quizFinished.feedbackMessage}</p>
-                </div>
+                {/* Feedback da IA */}
+                {quizFinished.ai_feedback && (
+                    <div className="p-6 rounded-lg border border-indigo-500/30 bg-indigo-900/20 mb-8 text-left">
+                        <div className="flex items-center gap-2 mb-2 text-indigo-400">
+                            <BrainCircuit size={20} />
+                            <span className="font-bold text-sm uppercase tracking-wider">Feedback Inteligente</span>
+                        </div>
+                        <p className="text-gray-200 italic">"{quizFinished.ai_feedback}"</p>
+                    </div>
+                )}
                 
                 <button
                     onClick={() => setCurrentPage('dashboard')}
@@ -144,7 +145,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
   }
 
   if (questions.length === 0) {
-      return <div className="p-10 text-center text-white">Nenhuma questão encontrada para o seu nível no momento. Tente novamente mais tarde.</div>;
+      return <div className="p-10 text-center text-white">Nenhuma questão encontrada para o seu nível no momento.</div>;
   }
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -154,7 +155,7 @@ const ActivitiesPage: React.FC<ActivitiesPageProps> = ({ user, setUser, setCurre
     <div className="p-6 md:p-10 flex-1 overflow-auto">
       <h2 className="text-3xl font-bold text-gray-100 mb-2">Atividade Adaptativa</h2>
       <div className="mb-6 text-sm text-gray-400 flex justify-between items-center">
-        <span>Nível: <span className="font-semibold text-indigo-400">{currentQuestion.difficulty}</span></span>
+        <span>Nível: <span className="font-semibold text-indigo-400 uppercase">{currentQuestion.difficulty}</span></span>
         <span>Questão {currentQuestionIndex + 1} de {questions.length}</span>
       </div>
       

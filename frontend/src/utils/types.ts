@@ -4,7 +4,7 @@ export type Page = 'login' | 'dashboard' | 'activities' | 'progress' | 'profile'
 export type UserLevel = 'Iniciante' | 'Intermediário' | 'Avançado';
 
 export interface UserData {
-  id: number; // Adicionado ID que vem do banco
+  id: number;
   name: string;
   email: string;
   level: UserLevel;
@@ -15,7 +15,7 @@ export interface UserData {
 
 export interface Question {
   id: number;
-  question: string; // O backend manda como "question" no to_dict, mas no banco é statement
+  question: string;
   options: string[];
   difficulty: 'fácil' | 'médio' | 'difícil';
   topic?: string;
@@ -27,5 +27,6 @@ export interface QuizResult {
     accuracy: number;
     feedbackMessage: string;
     nextLevel: 'fácil' | 'médio' | 'difícil';
-    newScore: number; // Adicionado para feedback visual
+    newScore: number;
+    ai_feedback?: string; // Adicionado campo opcional para IA
 }
