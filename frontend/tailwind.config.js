@@ -7,7 +7,6 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Adiciona a fonte 'Inter' que você usou no App.tsx
         inter: ['Inter', 'sans-serif'],
       },
     },

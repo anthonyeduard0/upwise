@@ -1,4 +1,3 @@
-// frontend/src/pages/ProgressPage.tsx
 import React, { useEffect, useState } from 'react';
 import {
   Chart as ChartJS,
@@ -15,7 +14,6 @@ import { Line } from 'react-chartjs-2';
 import { TrendingUp, Calendar, Target } from 'lucide-react';
 import type { UserData, Page } from '../utils/types.ts';
 
-// Registrar componentes do gráfico de linha
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -48,9 +46,9 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ user }) => {
             {
               label: 'Média de Precisão Diária (%)',
               data: data.data,
-              borderColor: 'rgb(147, 51, 234)', // Roxo (Purple-600)
+              borderColor: 'rgb(147, 51, 234)', 
               backgroundColor: 'rgba(147, 51, 234, 0.2)',
-              tension: 0.4, // Curva suave
+              tension: 0.4, 
               fill: true,
               pointBackgroundColor: '#fff',
               pointBorderColor: 'rgb(147, 51, 234)',
@@ -106,7 +104,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ user }) => {
       <h2 className="text-3xl font-bold text-gray-100 mb-2">Relatório de Progresso 📈</h2>
       <p className="text-gray-400 mb-8">Acompanhe sua evolução dia a dia.</p>
 
-      {/* Resumo Rápido */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-gray-800 p-5 rounded-xl border-l-4 border-purple-500 shadow-lg">
             <div className="flex items-center gap-3 mb-1">
@@ -133,7 +131,7 @@ const ProgressPage: React.FC<ProgressPageProps> = ({ user }) => {
         </div>
       </div>
 
-      {/* Gráfico Principal */}
+      {}
       <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
         <h3 className="text-lg font-semibold text-gray-200 mb-6">Curva de Aprendizado</h3>
         <div className="h-80 w-full">

@@ -1,13 +1,10 @@
-/* Importa a fonte Inter que você definiu no tailwind.config.js */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-/* Diretivas do Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  /* Melhora a renderização da fonte */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

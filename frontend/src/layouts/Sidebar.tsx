@@ -1,4 +1,3 @@
-// frontend/src/layouts/Sidebar.tsx
 import React from 'react';
 import { LayoutDashboard, User, BarChart3, LogIn, Award, Menu, X, Activity } from 'lucide-react';
 import type { Page, UserLevel } from '../utils/types.ts';
@@ -11,7 +10,7 @@ interface SidebarProps {
   userLevel: UserLevel;
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
-  onLogout: () => void; // Nova prop
+  onLogout: () => void; 
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, userName, userLevel, isMobileMenuOpen, toggleMobileMenu, onLogout }) => {
@@ -78,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, userName
         </nav>
 
         <button
-          onClick={onLogout} // Chama a função de logout real
+          onClick={onLogout} 
           className="w-full mt-auto flex items-center justify-center p-3 rounded-lg bg-red-600 hover:bg-red-700 transition-colors duration-200 text-white font-medium"
         >
           <LogIn size={20} className="mr-2" />

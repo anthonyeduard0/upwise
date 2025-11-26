@@ -1,4 +1,3 @@
-// frontend/src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import type { UserData } from '../utils/types.ts';
 import logoIcon from '../assets/logo-icon.png'; 
@@ -40,9 +39,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
       if (isLogin) {
         setMessage('Login realizado! Entrando...');
-        // O backend retorna { message: "...", user: {...} }
-        // Mapeia os campos do backend (snake_case) para o frontend (camelCase) se necessário
-        // No nosso backend models.py o to_dict já retorna camelCase para totalActivities
+
         onLoginSuccess(data.user);
       } else {
         setMessage('Cadastro realizado! Faça login agora.');

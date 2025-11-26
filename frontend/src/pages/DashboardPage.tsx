@@ -6,7 +6,6 @@ import { Doughnut } from 'react-chartjs-2';
 import StatCard from '../components/StatCard.tsx';
 import type { UserData, Page } from '../utils/types.ts';
 
-// Registra os componentes do Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface DashboardPageProps {
@@ -16,20 +15,18 @@ interface DashboardPageProps {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ user, setCurrentPage }) => {
   
-  // Cálculos para o gráfico baseados nos dados reais do Backend
   const totalQuestions = user.totalActivities; 
   const correctAnswers = Math.round(totalQuestions * (user.accuracy / 100));
   const wrongAnswers = totalQuestions - correctAnswers;
 
-  // Configuração do Gráfico
   const chartData = {
     labels: ['Acertos', 'Erros'],
     datasets: [
       {
         data: [correctAnswers, wrongAnswers],
         backgroundColor: [
-          'rgba(74, 222, 128, 0.8)', // Verde (Acertos)
-          'rgba(248, 113, 113, 0.8)', // Vermelho (Erros)
+          'rgba(74, 222, 128, 0.8)', 
+          'rgba(248, 113, 113, 0.8)', 
         ],
         borderColor: [
           'rgba(74, 222, 128, 1)',
@@ -45,27 +42,27 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, setCurrentPage }) =
     plugins: {
       legend: {
         position: 'bottom' as const,
-        labels: { color: '#e5e7eb' } // Texto branco para modo escuro
+        labels: { color: '#e5e7eb' } 
       }
     },
-    cutout: '70%', // Deixa a rosca mais fina
+    cutout: '70%', 
   };
 
   return (
     <div className="p-6 md:p-10 flex-1 overflow-auto">
       <h2 className="text-3xl font-bold text-gray-100 mb-8">Olá, {user.name.split(' ')[0]}! 👋</h2>
 
-      {/* Cartões de Estatísticas */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         <StatCard title="Pontuação Total" value={user.score} icon={Award} color="bg-indigo-600" />
         <StatCard title="Questões Respondidas" value={user.totalActivities} icon={BookOpen} color="bg-purple-600" />
         <StatCard title="Nível Atual" value={user.level} icon={Activity} color="bg-pink-600" />
       </div>
 
-      {/* Seção Principal */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Gráfico de Precisão */}
+        {}
         <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-center justify-around">
           <div className="mb-6 md:mb-0 md:w-1/2">
             <h3 className="text-xl font-semibold text-gray-100 mb-2">Sua Precisão</h3>
@@ -88,7 +85,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, setCurrentPage }) =
           </div>
         </div>
 
-        {/* Card de Início Rápido */}
+        {}
         <div className="lg:col-span-1">
           <div className="bg-gradient-to-br from-purple-700 to-indigo-700 p-8 rounded-xl shadow-xl h-full flex flex-col justify-between">
             <div>

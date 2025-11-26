@@ -1,4 +1,3 @@
-// frontend/src/pages/ProfilePage.tsx
 import React, { useState } from 'react';
 import { User, Mail, Save, GraduationCap, Trophy, Target } from 'lucide-react';
 import type { UserData, Page } from '../utils/types.ts';
@@ -9,7 +8,6 @@ interface ProfilePageProps {
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
-  // Estado local para edição (apenas visual por enquanto)
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [isEditing, setIsEditing] = useState(false);
@@ -17,7 +15,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
 
   const handleSave = async () => {
     try {
-      // Chama a API para salvar (criamos essa rota update_user_profile no backend)
       const response = await fetch(`http://localhost:5000/api/user/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -26,7 +23,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
 
       if (response.ok) {
         setMessage('Perfil atualizado com sucesso!');
-        user.name = name; // Atualiza o objeto local (idealmente usaria setUser do App)
+        user.name = name; 
         setIsEditing(false);
         setTimeout(() => setMessage(''), 3000);
       } else {
@@ -43,7 +40,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Cartão de Edição de Dados */}
+        {}
         <div className="lg:col-span-2 bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700">
           <div className="flex items-center mb-6">
             <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mr-4">
@@ -120,7 +117,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
           </div>
         </div>
 
-        {/* Cartão de Resumo de Stats */}
+        {}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
             <h4 className="text-lg font-semibold text-gray-200 mb-4 flex items-center">
