@@ -7,4 +7,25 @@
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Correção para o fundo branco ao rolar a página */
+  @apply bg-gray-900; 
+  background-color: #111827; /* Fallback para garantir */
+}
+
+/* Customização da barra de rolagem para combinar com o tema */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280; 
 }

@@ -16,6 +16,9 @@ class User(db.Model):
     total_activities = db.Column(db.Integer, default=0)
     accuracy = db.Column(db.Float, default=0.0)
     
+    # Novo campo para assinatura
+    is_premium = db.Column(db.Boolean, default=False)
+    
     activities = db.relationship('UserActivity', backref='user', lazy=True)
     achievements = db.relationship('Achievement', backref='user', lazy=True)
 
@@ -27,7 +30,8 @@ class User(db.Model):
             'level': self.level,
             'score': self.score,
             'totalActivities': self.total_activities,
-            'accuracy': self.accuracy
+            'accuracy': self.accuracy,
+            'isPremium': self.is_premium  # Retorna o status no JSON
         }
 
 class Question(db.Model):

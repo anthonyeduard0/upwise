@@ -1,5 +1,5 @@
 // frontend/src/utils/types.ts
-export type Page = 'login' | 'dashboard' | 'activities' | 'progress' | 'profile' | 'rewards';
+export type Page = 'login' | 'dashboard' | 'activities' | 'progress' | 'profile' | 'rewards' | 'subscription';
 export type UserLevel = 'Iniciante' | 'Intermediário' | 'Avançado';
 
 export interface UserData {
@@ -10,6 +10,7 @@ export interface UserData {
   score: number;
   totalActivities: number;
   accuracy: number;
+  isPremium: boolean;
 }
 
 export interface Question {
