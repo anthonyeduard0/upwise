@@ -11,9 +11,11 @@ from models import db, User, Question, UserActivity, Achievement
 import pandas as pd
 import numpy as np
 import google.generativeai as genai
-from datetime import datetime
+from datetime import datetime, timezone
+from google.api_core import exceptions
+from sqlalchemy import text # Importante para queries SQL diretas com parâmetros
 
-# Tenta importar o PyMongo, mas não quebra o app se não estiver instalado (Útil se esquecer o venv)
+# Tenta importar o PyMongo
 try:
     from pymongo import MongoClient
 except ImportError:
@@ -31,7 +33,6 @@ logs_collection = None
 
 if MongoClient:
     try:
-        # Tenta conectar, se falhar (ex: serviço parado), segue sem Mongo
         mongo_client = MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=2000)
         mongo_client.server_info() # Força conexão para testar
         mongo_db = mongo_client['upwise_datalake']
@@ -47,79 +48,126 @@ CORS(app)
 
 # Configurações IA e Constantes
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-if GOOGLE_API_KEY: genai.configure(api_key=GOOGLE_API_KEY)
+if GOOGLE_API_KEY: 
+    genai.configure(api_key=GOOGLE_API_KEY)
+else:
+    print("❌ AVISO: GOOGLE_API_KEY não encontrada no arquivo .env")
+
 QUESTIONS_PER_LEVEL_SEED = 3
 TOPICS_TO_GENERATE = ["Tecnologia", "Ciência", "História", "Matemática", "Artes", "Geografia", "Filosofia", "Sociologia"]
 
 # --- FUNÇÕES AUXILIARES ---
+
 def clean_option_text(text):
+    """Limpa prefixos como 'A)', '1.', etc das opções."""
     return re.sub(r'^[A-Da-d1-4][\)\.]\s*', '', text).strip()
 
+def extract_json_from_response(text):
+    try:
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+        cleaned_text = text.replace('```json', '').replace('```', '').strip()
+        return json.loads(cleaned_text)
+    except json.JSONDecodeError as e:
+        print(f"❌ Falha ao decodificar JSON da IA: {e}")
+        return None
+
 def call_gemini(prompt):
-    models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']
+    models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-2.5-flash']
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+    ]
+
     for m in models:
         try:
             model = genai.GenerativeModel(m)
-            return model.generate_content(prompt).text
-        except: continue
+            response = model.generate_content(prompt, safety_settings=safety_settings)
+            if response.text: return response.text
+        except exceptions.PermissionDenied: print(f"   ⛔ Permissão negada no modelo {m}.")
+        except exceptions.NotFound: print(f"   ⚠️ Modelo {m} não encontrado.")
+        except Exception as e: print(f"   ⚠️ Erro no modelo {m}: {e}")
     return None
 
 def generate_new_question_with_ai(difficulty, topic=None):
-    if not GOOGLE_API_KEY: return None
+    if not GOOGLE_API_KEY: 
+        print("⚠️ Tentativa de gerar questão sem API KEY configurada.")
+        return None
+        
     if not topic: topic = random.choice(TOPICS_TO_GENERATE)
     
-    guides = {"fácil": "Fatos básicos.", "médio": "Aplicação.", "difícil": "Análise crítica."}
+    # Guia de dificuldade ajustado para ser mais desafiador
+    guides = {
+        "fácil": "Nível fundamental/básico, mas NÃO trivial. Evite perguntas óbvias como 'quanto é 2+2'. Foque em definições, conceitos iniciais ou fatos históricos importantes.",
+        "médio": "Nível ensino médio/vestibular. Exige raciocínio, interpretação de texto ou aplicação de fórmulas simples. Não pode ser respondida apenas com senso comum.",
+        "difícil": "Nível universitário ou especialista. Exige análise crítica, correlação de conceitos complexos, detalhes específicos ou cálculos de múltiplas etapas."
+    }
+    
     prompt = f"""
-    Gere 1 questão múltipla escolha sobre: {topic}. Dificuldade: {difficulty.upper()}. {guides.get(difficulty, "")}
-    REGRAS: JSON válido. Sem prefixos nas opções. 'correct_answer' igual a uma opção.
-    Formato: {{"statement": "...", "options": ["..."], "correct_answer": "...", "topic": "{topic}"}}
+    Atue como um professor especialista elaborando uma prova.
+    Gere 1 questão de múltipla escolha desafiadora sobre: {topic}. 
+    Nível de Dificuldade: {difficulty.upper()}.
+    Diretriz de Dificuldade: {guides.get(difficulty, "")}
+    
+    JSON APENAS: {{"statement": "Enunciado da questão...", "options": ["Opção A", "Opção B", "Opção C", "Opção D"], "correct_answer": "Texto exato da correta", "topic": "{topic}"}}
+    A 'correct_answer' deve ser IDÊNTICA a uma das 'options'. Não use markdown.
     """
+    
+    print(f"🤖 Solicitando questão ({difficulty}) para IA sobre {topic}...")
     resp = call_gemini(prompt)
-    if not resp: return None
+    if not resp: 
+        print("❌ A IA não retornou resposta.")
+        return None
+    
+    data = extract_json_from_response(resp)
+    if not data: return None
+    
     try:
-        data = json.loads(resp.replace('```json', '').replace('```', '').strip())
-        opts = [clean_option_text(o) for o in data['options']]
-        corr = clean_option_text(data['correct_answer'])
-        if corr not in opts: opts[0] = corr
+        opts = [clean_option_text(str(o)) for o in data['options']]
+        corr = clean_option_text(str(data['correct_answer']))
         
-        nq = Question(statement=data['statement'], options=opts, correct_answer=corr, difficulty=difficulty, topic=data.get('topic', topic))
+        if corr not in opts: 
+            opts[0] = corr
+            random.shuffle(opts)
+        
+        nq = Question(
+            statement=data['statement'], options=opts, correct_answer=corr, 
+            difficulty=difficulty, topic=data.get('topic', topic)
+        )
         db.session.add(nq)
         db.session.commit()
-        print(f"✅ IA Gerou: {difficulty} - {topic}")
+        print(f"✅ IA Gerou e salvou: {difficulty} - {topic}")
         return nq
-    except: return None
+    except Exception as e:
+        print(f"❌ Erro ao salvar questão: {e}")
+        db.session.rollback()
+        return None
 
 def generate_ai_feedback(q, ans, corr, is_cor):
     if not GOOGLE_API_KEY: return None
-    return call_gemini(f"Aluno {'acertou' if is_cor else 'errou'}: '{q}'. Resp: '{ans}'. Correta: '{corr}'. Feedback curto 1 frase.")
+    return call_gemini(f"Atue como tutor. O aluno {'acertou' if is_cor else 'errou'} a questão: '{q}'. Resp dele: '{ans}'. Correta: '{corr}'. Dê um feedback curto e didático (1 frase) explicando o porquê.")
 
-# Atualizado para aceitar a precisão da rodada atual e novas conquistas
 def check_achievements(user, current_round_acc=None):
     new = []
     badges = [
-        # Existentes
         {"title": "Primeiros Passos", "cond": lambda u: u.total_activities >= 1, "desc": "1ª atividade concluída.", "icon": "flag"},
         {"title": "Estudante Dedicado", "cond": lambda u: u.score >= 100, "desc": "100 pontos XP.", "icon": "star"},
         {"title": "Mestre", "cond": lambda u: u.level == 'Avançado', "desc": "Nível Avançado alcançado.", "icon": "trophy"},
         {"title": "Imparável", "cond": lambda u: u.total_activities >= 20, "desc": "20 questões respondidas.", "icon": "target"},
-        
-        # Novas Conquistas
         {"title": "Maratonista", "cond": lambda u: u.total_activities >= 50, "desc": "50 questões respondidas.", "icon": "zap"},
         {"title": "Lendário", "cond": lambda u: u.score >= 1000, "desc": "Acumulou 1000 pontos XP.", "icon": "crown"},
-        # Na Mosca: Requer que a precisão da rodada atual seja 100% (e que tenha havido uma rodada)
         {"title": "Na Mosca!", "cond": lambda u: current_round_acc is not None and current_round_acc >= 99.9, "desc": "Acertou 100% em uma rodada.", "icon": "crosshair"},
-         # Conquista Premium
         {"title": "Membro VIP", "cond": lambda u: u.is_premium, "desc": "Tornou-se um assinante Premium.", "icon": "gem"},
     ]
     
     user_badges_titles = [b.title for b in user.achievements]
-    
     for b in badges:
-        # Verifica se a condição foi atendida E se o usuário já não tem essa conquista
         if b["cond"](user) and b["title"] not in user_badges_titles:
             db.session.add(Achievement(user_id=user.id, title=b["title"], description=b["desc"], icon_name=b["icon"]))
             new.append(b["title"])
-            
     db.session.commit()
     return new
 
@@ -132,7 +180,6 @@ def register():
     u = User(name=d['name'], email=d['email'], password=d['password'])
     db.session.add(u)
     db.session.commit()
-    # Verifica conquistas iniciais (ex: se criarmos uma por registrar)
     check_achievements(u)
     return jsonify({'message': 'Criado', 'user': u.to_dict()}), 201
 
@@ -160,18 +207,9 @@ def subscribe():
     user_id = d.get('user_id')
     u = db.session.get(User, user_id)
     if not u: return jsonify({'error': 'User not found'}), 404
-    
     u.is_premium = True
     db.session.commit()
-    
-    # Verifica se ganhou a conquista de Premium
-    new_badges = check_achievements(u)
-    
-    return jsonify({
-        'message': 'Assinatura ativada com sucesso!', 
-        'user': u.to_dict(),
-        'new_achievements': new_badges
-    })
+    return jsonify({'message': 'Assinatura ativada!', 'user': u.to_dict(), 'new_achievements': check_achievements(u)})
 
 @app.route('/api/user/achievements/<int:id>', methods=['GET'])
 def ach(id):
@@ -180,29 +218,73 @@ def ach(id):
 @app.route('/api/user/progress/<int:id>', methods=['GET'])
 def prog(id):
     try:
-        # Usa pandas para agrupar por dia e calcular média
-        df = pd.read_sql(f"SELECT timestamp, is_correct FROM user_activities WHERE user_id = {id} ORDER BY timestamp ASC", db.engine)
-        if df.empty: return jsonify({'labels': [], 'data': []})
-        df['d'] = pd.to_datetime(df['timestamp']).dt.strftime('%d/%m')
-        s = df.groupby('d')['is_correct'].mean() * 100
-        return jsonify({'labels': s.index.tolist(), 'data': s.round(1).tolist()})
-    except: return jsonify({'labels': [], 'data': []})
+        # SQL para buscar dados de histórico e tópicos (JOIN entre atividades e questões)
+        # Atenção aos nomes das tabelas no seu banco (geralmente user_activities e questions)
+        query = text("""
+            SELECT ua.timestamp, ua.is_correct, q.topic 
+            FROM user_activities ua
+            JOIN questions q ON ua.question_id = q.id
+            WHERE ua.user_id = :user_id
+            ORDER BY ua.timestamp ASC
+        """)
+        
+        # Executa a query usando a conexão do SQLAlchemy
+        with db.engine.connect() as conn:
+            df = pd.read_sql(query, conn, params={"user_id": id})
+
+        if df.empty:
+            return jsonify({
+                'history': {'labels': [], 'data': []},
+                'topics': {'labels': [], 'data': []}
+            })
+
+        # Processamento para o Gráfico de Evolução (Linha)
+        df['date'] = pd.to_datetime(df['timestamp']).dt.strftime('%d/%m')
+        history_series = df.groupby('date')['is_correct'].mean() * 100
+        history_data = {
+            'labels': history_series.index.tolist(),
+            'data': history_series.round(1).tolist()
+        }
+
+        # Processamento para o Gráfico de Tópicos (Barra)
+        # Agrupa por tópico e calcula a média de acertos
+        topic_series = df.groupby('topic')['is_correct'].mean() * 100
+        # Ordena para mostrar os melhores primeiro
+        topic_series = topic_series.sort_values(ascending=False)
+        topics_data = {
+            'labels': topic_series.index.tolist(),
+            'data': topic_series.round(1).tolist()
+        }
+
+        return jsonify({
+            'history': history_data,
+            'topics': topics_data
+        })
+
+    except Exception as e:
+        print(f"Erro ao gerar progresso: {e}")
+        return jsonify({
+            'history': {'labels': [], 'data': []},
+            'topics': {'labels': [], 'data': []}
+        })
 
 @app.route('/api/activities/next/<int:id>', methods=['GET'])
 def next_q(id):
     u = db.session.get(User, id)
     diff = 'fácil' if u.level == 'Iniciante' else 'difícil' if u.level == 'Avançado' else 'médio'
-    # Evita repetir questões que o usuário já respondeu
+    
     ids = db.session.query(UserActivity.question_id).filter_by(user_id=id)
     qs = Question.query.filter(Question.difficulty == diff, ~Question.id.in_(ids)).order_by(db.func.random()).limit(5).all()
     
-    # Se não tiver questões suficientes no banco, tenta gerar com IA
-    if len(qs) < 5 and GOOGLE_API_KEY:
-        for _ in range(5 - len(qs)):
-            # time.sleep(1) # Reduzido para agilizar em dev
-            nq = generate_new_question_with_ai(diff)
-            if nq: qs.append(nq)
-            
+    if len(qs) < 5:
+        if GOOGLE_API_KEY:
+            print(f"⚠️ Banco com poucas questões ({len(qs)}). Tentando gerar com IA...")
+            for _ in range(5 - len(qs)):
+                nq = generate_new_question_with_ai(diff)
+                if nq: qs.append(nq)
+        else:
+            print("⚠️ Poucas questões e sem chave de API.")
+
     return jsonify([q.to_dict() for q in qs])
 
 @app.route('/api/activities/submit', methods=['POST'])
@@ -216,61 +298,46 @@ def submit():
     score = 0
     correction_details = []
     mongo_logs = []
-    timestamp_now = datetime.utcnow()
+    timestamp_now = datetime.now(timezone.utc)
 
-    # Processa cada resposta
     for item in answers:
         q = db.session.get(Question, item['question_id'])
         if not q: continue
-        
         is_cor = (clean_option_text(q.correct_answer) == clean_option_text(item['answer']))
-        
         if is_cor:
             corrects += 1
             score += 10
-            
         db.session.add(UserActivity(user_id=uid, question_id=q.id, user_answer=item['answer'], is_correct=is_cor))
         
-        # Prepara log para MongoDB
         if mongo_client:
-            mongo_log = {
-                "user_id": uid,
-                "user_level_at_time": u.level,
-                "question_id": q.id,
-                "question_topic": q.topic,
-                "question_difficulty": q.difficulty,
-                "user_answer": item['answer'],
-                "correct_answer": q.correct_answer,
-                "is_correct": is_cor,
-                "timestamp": timestamp_now,
-                "platform": "web_react",
-            }
-            mongo_logs.append(mongo_log)
-
-        correction_details.append({
-            'question_id': q.id, 'correct_answer': q.correct_answer,
-            'user_answer': item['answer'], 'is_correct': is_cor
-        })
+            mongo_logs.append({
+                "user_id": uid, "user_level_at_time": u.level,
+                "question_id": q.id, "question_topic": q.topic,
+                "question_difficulty": q.difficulty, "user_answer": item['answer'],
+                "correct_answer": q.correct_answer, "is_correct": is_cor,
+                "timestamp": timestamp_now, "platform": "web_react",
+            })
+        
+        correction_details.append({'question_id': q.id, 'correct_answer': q.correct_answer, 'user_answer': item['answer'], 'is_correct': is_cor})
 
     db.session.commit()
 
-    # Salva logs no MongoDB se disponível
-    if mongo_client and logs_collection and mongo_logs:
+    if mongo_client is not None and logs_collection is not None and mongo_logs:
         try:
             logs_collection.insert_many(mongo_logs)
             print(f"📊 {len(mongo_logs)} logs salvos no MongoDB!")
         except Exception as e:
             print(f"⚠️ Erro ao salvar no Mongo: {e}")
 
-    # Gera feedback da IA para a última questão se houver respostas
     ai_feed = None
     if answers and GOOGLE_API_KEY:
-        last = answers[-1]
-        q_last = db.session.get(Question, last['question_id'])
-        is_last_cor = (clean_option_text(q_last.correct_answer) == clean_option_text(last['answer']))
-        ai_feed = generate_ai_feedback(q_last.statement, last['answer'], q_last.correct_answer, is_last_cor)
+        try:
+            last = answers[-1]
+            q_last = db.session.get(Question, last['question_id'])
+            is_last_cor = (clean_option_text(q_last.correct_answer) == clean_option_text(last['answer']))
+            ai_feed = generate_ai_feedback(q_last.statement, last['answer'], q_last.correct_answer, is_last_cor)
+        except: pass
 
-    # Recalcula precisão geral e total de atividades
     q_sql = f"SELECT is_correct FROM user_activities WHERE user_id = {uid}"
     df = pd.read_sql(q_sql, db.engine)
     if not df.empty:
@@ -278,16 +345,12 @@ def submit():
         u.total_activities = int(len(df))
     
     u.score += score
-    # Precisão desta rodada específica
     acc_round = (corrects / len(answers)) * 100 if answers else 0
     
-    # Lógica simples de subida/descida de nível
     if acc_round >= 80 and u.level != 'Avançado': u.level = 'Intermediário' if u.level == 'Iniciante' else 'Avançado'
     elif acc_round < 40 and u.level != 'Iniciante': u.level = 'Intermediário' if u.level == 'Avançado' else 'Iniciante'
 
     db.session.commit()
-    
-    # Verifica conquistas, passando a precisão da rodada atual (se houve respostas)
     badges = check_achievements(u, current_round_acc=acc_round if answers else None)
 
     return jsonify({
@@ -303,12 +366,10 @@ def seed():
     for lvl in ['fácil', 'médio', 'difícil']:
         needed = QUESTIONS_PER_LEVEL_SEED - Question.query.filter_by(difficulty=lvl).count()
         if needed > 0:
-            print(f"⚙️ Gerando {needed} {lvl}...")
             for _ in range(needed):
                 topic = random.choice(TOPICS_TO_GENERATE)
                 if generate_new_question_with_ai(lvl, topic): c += 1
-                print("⏳ Cota...")
-                time.sleep(4) # Respeitar cota da API gratuita
+                time.sleep(1)
     return jsonify({'msg': f'{c} novas'})
 
 if __name__ == '__main__':

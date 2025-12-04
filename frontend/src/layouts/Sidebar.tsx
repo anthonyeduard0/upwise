@@ -46,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user, is
           <p className="text-sm text-gray-400">Bem-vindo(a),</p>
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold truncate">{user.name}</p>
-            {/* CORREÇÃO: Usando uma div wrapper para o title */}
+            {/* Ícone de coroa se for premium */}
             {user.isPremium && (
               <div title="Usuário Premium" className="cursor-help">
                 <Crown size={16} className="text-yellow-400" />
@@ -84,17 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user, is
           </ul>
         </nav>
 
-        {!user.isPremium && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-indigo-900 to-purple-900 rounded-xl border border-purple-500/30 text-center">
-                <p className="text-sm font-bold text-white mb-2">Seja Premium! 🚀</p>
-                <button 
-                    onClick={() => setCurrentPage('subscription')}
-                    className="text-xs w-full bg-white text-indigo-900 font-bold py-2 rounded hover:bg-gray-100 transition"
-                >
-                    Ver Planos
-                </button>
-            </div>
-        )}
+        {/* Card 'Seja Premium' foi removido daqui conforme solicitado */}
 
         <button
           onClick={onLogout} 

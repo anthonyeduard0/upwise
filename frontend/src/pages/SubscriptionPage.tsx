@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Star, Zap, Crown, Shield, X } from 'lucide-react';
+import { Check, X, Sparkles, Star } from 'lucide-react';
 import type { UserData } from '../utils/types.ts';
 
 interface SubscriptionPageProps {
@@ -22,11 +22,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, setUser }) =>
       
       if (response.ok) {
         setUser(data.user);
-        if (data.new_achievements && data.new_achievements.length > 0) {
-             alert(`Parabéns! Você é PRO e desbloqueou: ${data.new_achievements.join(', ')}! 🚀`);
-        } else {
-             alert('Parabéns! Você agora é Upwise PRO! 🚀');
-        }
+        alert('Parabéns! Você agora é Upwise Premium! 🚀');
       }
     } catch (error) {
       console.error(error);
@@ -36,117 +32,107 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, setUser }) =>
     }
   };
 
+  const Card = ({ title, price, features, active, popular, buttonText, onClick, disabled }: any) => (
+    <div className={`relative flex flex-col p-6 rounded-2xl border transition-all duration-300 ${
+      active 
+        ? 'bg-indigo-900/40 border-indigo-500 shadow-2xl scale-105 z-10' 
+        : 'bg-gray-900 border-gray-800 hover:border-gray-700'
+    }`}>
+      {popular && (
+        <div className="absolute -top-4 left-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-lg">
+          <Star size={12} className="mr-1 fill-current" /> Popular
+        </div>
+      )}
+      
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-100">{title}</h3>
+        <p className="text-2xl font-bold text-white mt-2">{price}</p>
+      </div>
+
+      <ul className="space-y-4 mb-8 flex-1">
+        {features.map((f: any, i: number) => (
+          <li key={i} className="flex items-start text-sm">
+            {f.included ? (
+              <Check className="text-white mr-3 shrink-0" size={18} />
+            ) : (
+              <X className="text-gray-600 mr-3 shrink-0" size={18} />
+            )}
+            <span className={f.included ? 'text-gray-300' : 'text-gray-600'}>{f.text}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
+          active
+            ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/50'
+            : disabled
+              ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              : 'bg-yellow-700/20 text-yellow-500 border border-yellow-700/50 hover:bg-yellow-700/30'
+        }`}
+      >
+        {disabled ? 'Plano Atual' : isLoading && active ? 'Processando...' : buttonText}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="p-6 md:p-10 flex-1 overflow-auto bg-gray-900 min-h-full">
-      <div className="text-center max-w-2xl mx-auto mb-12">
-        <h2 className="text-4xl font-extrabold text-white mb-4">
-          Invista no seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Futuro</span>
+    <div className="p-6 md:p-10 flex-1 overflow-auto bg-[#0B0C15] min-h-full flex flex-col items-center">
+      <div className="text-center max-w-2xl mx-auto mb-16 mt-8">
+        <h2 className="text-4xl font-bold text-white mb-3 flex items-center justify-center gap-3">
+          Assinaturas Upwise <Sparkles className="text-yellow-400" />
         </h2>
-        <p className="text-gray-400 text-lg">
-          Desbloqueie todo o potencial da plataforma com o plano Pro e acelere seu aprendizado.
+        <p className="text-gray-400">
+          Invista no seu aprendizado e desbloqueie novas conquistas.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
-        {/* Plano Gratuito */}
-        <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 shadow-xl flex flex-col relative opacity-80 hover:opacity-100 transition duration-300">
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-300 uppercase tracking-widest">Básico</h3>
-            <div className="mt-4 flex items-baseline">
-              <span className="text-4xl font-extrabold text-white">R$ 0</span>
-              <span className="ml-1 text-xl font-medium text-gray-500">/mês</span>
-            </div>
-          </div>
-          
-          <ul className="space-y-4 mb-8 flex-1">
-            <li className="flex items-center text-gray-300">
-              <Check className="text-green-500 mr-3" size={20} /> Acesso a questões diárias
-            </li>
-            <li className="flex items-center text-gray-300">
-              <Check className="text-green-500 mr-3" size={20} /> Acompanhamento de progresso básico
-            </li>
-            <li className="flex items-center text-gray-300">
-              <Check className="text-green-500 mr-3" size={20} /> Modo claro/escuro
-            </li>
-            <li className="flex items-center text-gray-500">
-              <X className="text-gray-600 mr-3" size={20} /> Feedback detalhado da IA
-            </li>
-            <li className="flex items-center text-gray-500">
-              <X className="text-gray-600 mr-3" size={20} /> Certificados de conclusão
-            </li>
-          </ul>
+      <div className="grid md:grid-cols-3 gap-6 max-w-6xl w-full">
+        {/* Plano Iniciante */}
+        <Card
+          title="Plano Iniciante - Grátis"
+          price="R$ 0,00"
+          features={[
+            { text: "Acesso às atividades básicas", included: true },
+            { text: 'Medalha "Primeiros Passos"', included: true },
+            { text: "Sem certificados", included: false },
+            { text: "Sem conteúdos avançados", included: false },
+          ]}
+          buttonText="Você já está nesse plano"
+          disabled={true}
+        />
 
-          <button className="w-full py-3 px-4 rounded-xl border border-gray-600 text-gray-300 font-bold hover:bg-gray-700 transition cursor-not-allowed" disabled>
-            Plano Atual
-          </button>
-        </div>
+        {/* Plano Premium */}
+        <Card
+          title="Premium"
+          price="R$ 24,90/mês"
+          active={true}
+          popular={true}
+          features={[
+            { text: "Conteúdos completos", included: true },
+            { text: "Certificados", included: true },
+            { text: "+50% XP em tudo", included: true },
+            { text: "Suporte prioritário", included: true },
+          ]}
+          buttonText={user.isPremium ? "Plano Atual" : "Assinar Agora"}
+          onClick={handleSubscribe}
+          disabled={user.isPremium}
+        />
 
-        {/* Plano PRO */}
-        <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl p-1 shadow-2xl relative transform md:-translate-y-4 hover:scale-[1.02] transition duration-300">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow-lg">
-                Mais Popular
-            </div>
-            <div className="bg-gray-900 rounded-xl p-8 h-full flex flex-col">
-                <div className="mb-4">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-bold text-indigo-400 uppercase tracking-widest">Upwise PRO</h3>
-                        <Crown className="text-yellow-400" size={24} />
-                    </div>
-                    <div className="mt-4 flex items-baseline">
-                        <span className="text-5xl font-extrabold text-white">R$ 29</span>
-                        <span className="ml-1 text-xl font-medium text-gray-400">/mês</span>
-                    </div>
-                    <p className="text-sm text-gray-400 mt-2">Cancele quando quiser.</p>
-                </div>
-                
-                <ul className="space-y-4 mb-8 flex-1">
-                    <li className="flex items-center text-white">
-                        <div className="bg-green-500/20 p-1 rounded-full mr-3"><Check className="text-green-400" size={16} /></div>
-                        Tudo do plano Básico
-                    </li>
-                    <li className="flex items-center text-white">
-                        <div className="bg-indigo-500/20 p-1 rounded-full mr-3"><Zap className="text-indigo-400" size={16} /></div>
-                        <strong>Feedback ilimitado da IA</strong>
-                    </li>
-                    <li className="flex items-center text-white">
-                        <div className="bg-purple-500/20 p-1 rounded-full mr-3"><Shield className="text-purple-400" size={16} /></div>
-                        Sem anúncios e distrações
-                    </li>
-                    <li className="flex items-center text-white">
-                        <div className="bg-yellow-500/20 p-1 rounded-full mr-3"><Star className="text-yellow-400" size={16} /></div>
-                        Questões exclusivas de alto nível
-                    </li>
-                    <li className="flex items-center text-white">
-                        <div className="bg-pink-500/20 p-1 rounded-full mr-3"><Crown className="text-pink-400" size={16} /></div>
-                        Certificados oficiais
-                    </li>
-                </ul>
-
-                {user.isPremium ? (
-                    <button className="w-full py-4 px-4 rounded-xl bg-green-600 text-white font-bold shadow-lg cursor-default flex items-center justify-center" disabled>
-                        <Check className="mr-2" size={20} /> Você já é PRO
-                    </button>
-                ) : (
-                    <button 
-                        onClick={handleSubscribe}
-                        disabled={isLoading}
-                        className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-900/50 transition duration-300 flex items-center justify-center group disabled:opacity-70"
-                    >
-                        {isLoading ? (
-                            <span className="flex items-center">Processando...</span>
-                        ) : (
-                            <>
-                                Assinar Agora <Zap size={20} className="ml-2 group-hover:text-yellow-300 transition-colors" />
-                            </>
-                        )}
-                    </button>
-                )}
-            </div>
-        </div>
-      </div>
-      
-      <div className="text-center border-t border-gray-800 pt-8 pb-4">
-          <p className="text-gray-500 text-sm">Pagamento seguro processado externamente. Dúvidas? Contate o suporte.</p>
+        {/* Plano Lifetime */}
+        <Card
+          title="Lifetime"
+          price="R$ 199,00"
+          features={[
+            { text: "Acesso vitalício", included: true },
+            { text: "Emblema dourado no perfil", included: true },
+            { text: "Todas as atualizações liberadas", included: true },
+          ]}
+          buttonText="Obter Lifetime"
+          onClick={() => alert('Em breve!')}
+        />
       </div>
     </div>
   );
